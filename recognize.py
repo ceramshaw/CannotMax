@@ -2,7 +2,24 @@ import os
 import cv2
 import numpy as np
 import pytesseract
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
+import torch
+import torchvision.transforms
+from sklearn.metrics.pairwise import cosine_similarity
+
+# 先创建无预训练权重的模型
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = torchvision.models.resnet18(weights=None)
+weights_path = r'models\resnet18-5c106cde.pth'
+state_dict = torch.load(weights_path,weights_only=False)
+model.load_state_dict(state_dict)
+model.eval().to(device)
+transforms_preprocess = torchvision.transforms.Compose([
+    torchvision.transforms.Resize(128),
+    torchvision.transforms.CenterCrop(80),
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
 
 # 配置Tesseract路径
 pytesseract.pytesseract.tesseract_cmd = r'Tesseract-OCR\tesseract.exe'
@@ -143,74 +160,26 @@ def preprocess(img):
 
 
 def find_best_match(target, ref_images):
-    """
-    结合灰度匹配和RGB通道匹配，找到最佳匹配的参考图像
-    :param target: 目标图像
-    :param ref_images: 参考图像字典 {id: image}
-    :return: (最佳匹配的id, 最小差异值)
-    """
-    min_diff = float('inf')
-    best_id = -1
+    """使用ORB特征匹配找到最佳匹配的参考图像"""
+    # 初始化ORB检测器
+    # ORB参数调优示例
+    def extract_features(img):
+        img_tensor = transforms_preprocess(img).unsqueeze(0).cuda()
+        with torch.no_grad():
+            features = model(img_tensor)
+        return features.cpu().numpy()
 
-    # cv2.imshow("target", target)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-    # 确保目标图像是RGB格式
-    if len(target.shape) == 2:
-        target = cv2.cvtColor(target, cv2.COLOR_GRAY2BGR)
-
-    # RGB通道匹配
-    target_r = target[:, :, 0]
-    target_g = target[:, :, 1]
-    target_b = target[:, :, 2]
-    # 高斯模糊
-    target_r = cv2.GaussianBlur(target_r, (3, 3), 0)
-    target_g = cv2.GaussianBlur(target_g, (3, 3), 0)
-    target_b = cv2.GaussianBlur(target_b, (3, 3), 0)
-
-    for img_id, ref_img in ref_images.items():
-        try:
-            # 确保参考图像是RGB格式
-            if len(ref_img.shape) == 2:
-                ref_img = cv2.cvtColor(ref_img, cv2.COLOR_GRAY2BGR)
-
-            # 调整参考图像大小以匹配目标图像
-            ref_resized = cv2.resize(ref_img, (target.shape[1], target.shape[0]))
-
-            # RGB通道匹配
-            ref_r = ref_resized[:, :, 0]
-            ref_g = ref_resized[:, :, 1]
-            ref_b = ref_resized[:, :, 2]
-            # 高斯模糊
-            ref_r = cv2.GaussianBlur(ref_r, (3, 3), 0)
-            ref_g = cv2.GaussianBlur(ref_g, (3, 3), 0)
-            ref_b = cv2.GaussianBlur(ref_b, (3, 3), 0)
-
-            # 分别计算RGB三个通道的差异
-            diff_r = cv2.absdiff(target_r, ref_r)
-            diff_g = cv2.absdiff(target_g, ref_g)
-            diff_b = cv2.absdiff(target_b, ref_b)
-
-            # 计算每个通道的差异值
-            diff_value_r = np.sum(diff_r) / target.size
-            diff_value_g = np.sum(diff_g) / target.size
-            diff_value_b = np.sum(diff_b) / target.size
-
-            # 综合所有差异值（RGB通道均分）
-            total_diff = (diff_value_r +
-                          diff_value_g +
-                          diff_value_b)
-
-            if total_diff < min_diff:
-                min_diff = total_diff
-                best_id = img_id
-
-        except Exception as e:
-            print(f"处理参考图像 {img_id} 时出错: {str(e)}")
-            continue
-
-    return best_id, min_diff
+    target_features = extract_features(Image.fromarray(target))
+    best_match_id = None
+    max_similarity = float('-inf')
+    for idx, ref_path in ref_images.items():
+        ref = Image.fromarray(ref_path)
+        ref_features = extract_features(ref)
+        similarity = cosine_similarity(target_features, ref_features)[0][0]
+        if similarity > max_similarity:
+            max_similarity = similarity
+            best_match_id = idx
+    return best_match_id, max_similarity
 
 
 def add_black_border(img, border_size=3):
