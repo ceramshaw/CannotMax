@@ -30,12 +30,12 @@ roi_box = []
 
 # 预定义相对坐标
 relative_regions_nums = [
-    (0.0, 0.0, 0.1324, 1),
-    (0.1324, 0.0, 0.2571, 1),
-    (0.2461, 0.0, 0.3778, 1),
-    (0.6260, 0.0, 0.7429, 1),
-    (0.7500, 0.0, 0.8746, 1),
-    (0.8646, 0.0, 1, 1)
+    (0.0, 0.75, 0.155, 1),
+    (0.155, 0.75, 0.28, 1),
+    (0.28, 0.75, 0.39, 1),
+    (0.61, 0.75, 0.72, 1),
+    (0.72, 0.75, 0.84, 1),
+    (0.84, 0.75, 0.95, 1)
 ]
 relative_regions = [
     (0.0, 0.0, 0.1173, 1),
@@ -264,15 +264,7 @@ def process_regions(main_roi, ref_images, screenshot=None):
             ry2_num = int(rel_num[3] * main_height)
 
             # 提取OCR识别用的子区域
-            sub_roi_num = screenshot[ry1_num:ry2_num, rx1_num:rx2_num]
-
-            # OCR识别（根据区域位置优化区域截取）
-            # 前3个区域（左侧）使用右下角，后3个区域（右侧）使用左下角
-            bottom_section = sub_roi_num[-sub_roi_num.shape[0] // 4:]
-            if idx < 3:  # 左侧区域 - 使用右半部分
-                number_roi = bottom_section[:, bottom_section.shape[1] // 3:]
-            else:  # 右侧区域 - 使用左半部分
-                number_roi = bottom_section[:, :bottom_section.shape[1] // 3 * 2]
+            number_roi = screenshot[ry1_num:ry2_num, rx1_num:rx2_num]
 
             processed = preprocess(number_roi)
             processed = crop_to_min_bounding_rect(processed)  # 裁剪出外接矩形，避免过大的空白的干扰
