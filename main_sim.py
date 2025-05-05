@@ -221,7 +221,7 @@ class SandboxSimulator:
         burn_bar_width = 40
 
         # 当前损伤值比例
-        skill_ratio = unit.skill / unit.max_skill
+        skill_ratio = min(1, unit.skill / unit.max_skill)
         current_width = burn_bar_width * skill_ratio
 
         # 背景（黑色）
