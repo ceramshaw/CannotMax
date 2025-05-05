@@ -206,7 +206,7 @@ class SandboxSimulator:
         )
 
         # 计算当前生命值比例
-        health_ratio = current_health / max_health
+        health_ratio = min(1, current_health / max_health)
         current_width = max(1, bar_width * health_ratio)  # 保持最小1像素可见
 
         # 绘制当前生命条（红色）
