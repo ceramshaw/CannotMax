@@ -12,6 +12,7 @@ import keyboard
 import numpy as np
 import torch
 import loadData
+from main_sim import SandboxSimulator
 import recognize
 import math
 from simulator.battle_field import Battlefield
@@ -56,6 +57,8 @@ class ArknightsApp:
         # 加载怪物数据
         with open("monsters.json", encoding='utf-8') as f:
             self.monster_data = json.load(f)["monsters"]
+
+        self.app = None
 
     def load_images(self):
         for i in range(1, MONSTER_COUNT + 1):
@@ -278,7 +281,10 @@ class ArknightsApp:
 
             sim_prediction = None
             if self.allow_simulation_predict.get():
-                sim_prediction = self.predict_with_simulator(self.process_battle_data(left_counts, right_counts))
+                battle_data = self.process_battle_data(left_counts, right_counts)
+                self.app = SandboxSimulator(self.root, battle_data)
+                #sim_prediction = self.predict_with_simulator()
+
 
             # 转换为张量并处理符号和绝对值
             left_signs = torch.sign(torch.tensor(left_counts, dtype=torch.int16)).unsqueeze(0).to(self.device)
