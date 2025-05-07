@@ -308,6 +308,7 @@ class ArknightsApp:
 
             return prediction, sim_prediction
         except FileNotFoundError:
+            raise
             messagebox.showerror("错误", "未找到模型文件，请先点击「训练」按钮")
             return 0.5, None
         except RuntimeError as e:

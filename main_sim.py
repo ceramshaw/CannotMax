@@ -25,7 +25,7 @@ class SandboxSimulator:
 
     def load_assets(self):
         self.icons = {}
-        with open("monsters.json", encoding='utf-8') as f:
+        with open("simulator/monsters.json", encoding='utf-8') as f:
             self.monster_data = json.load(f)["monsters"]
     
         for unit_id in range(self.num_monsters):
