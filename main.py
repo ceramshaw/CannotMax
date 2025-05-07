@@ -55,7 +55,7 @@ class ArknightsApp:
         self.load_model()  # 初始化时加载模型
 
         # 加载怪物数据
-        with open("monsters.json", encoding='utf-8') as f:
+        with open("simulator/monsters.json", encoding='utf-8') as f:
             self.monster_data = json.load(f)["monsters"]
 
         self.app = None
