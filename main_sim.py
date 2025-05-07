@@ -6,7 +6,7 @@ import math
 from simulator.battle_field import Battlefield
 from constants import UNIT_CONFIG
 from combat_calculator import calculate_damage
-from simulator.monsters import Monster, MonsterFactory
+from simulator.monsters import AttackState, Monster, MonsterFactory
 from simulator.simulate import MONSTER_MAPPING
 from simulator.utils import REVERSE_MONSTER_MAPPING, Faction
 from simulator.vector2d import FastVector
@@ -175,13 +175,13 @@ class SandboxSimulator:
         # 创建新单位（使用unit_id）
         new_unit = Unit(self.selected_team, self.selected_unit_id, x, y)
         data = next((m for m in self.monster_data if m["名字"] == MONSTER_MAPPING[self.selected_unit_id]), None)
-        self.battle_field.append_monster(
-            MonsterFactory.create_monster(data, Faction.RIGHT if self.selected_team == 'blue' else Faction.LEFT, FastVector(x, y), self.battle_field)
+        monster = MonsterFactory.create_monster(data, Faction.RIGHT if self.selected_team == 'blue' else Faction.LEFT, FastVector(x, y), self.battle_field)
+        self.battle_field.append_monster(monster
         )
         self.units.append(new_unit)
-        self.draw_unit(new_unit)
+        self.draw_unit(new_unit, monster)
 
-    def draw_unit(self, unit):
+    def draw_unit(self, unit, monster):
         x = unit.x * self.cell_size
         y = unit.y * self.cell_size
 
@@ -204,6 +204,7 @@ class SandboxSimulator:
             x + bar_width / 2, bar_y + bar_height / 2,
             fill="#400000", outline="" #"gray"
         )
+
 
         # 计算当前生命值比例
         health_ratio = min(1, current_health / max_health)
@@ -230,11 +231,17 @@ class SandboxSimulator:
             x + burn_bar_width / 2, burn_bar_y + 3,
             fill="black", outline=""
         )
+
+        color = "#FF3030"
+        if monster.attack_state == AttackState.后摇:
+            color = "#30FF30"
+        elif monster.attack_state == AttackState.等待:
+            color = "yellow"
         # 当前进度（黄色）
         self.canvas.create_rectangle(
             x - burn_bar_width / 2, burn_bar_y - 3,
             x - burn_bar_width / 2 + current_width, burn_bar_y + 3,
-            fill="yellow", outline=""
+            fill=color, outline=""
         )
 
         # # 冷却状态显示灰色
@@ -306,8 +313,14 @@ class SandboxSimulator:
                 unit.y = monster.position.y
                 unit.skill = monster.get_skill_bar()
                 unit.max_skill = monster.get_max_skill_bar()
-                self.draw_unit(unit)
+                self.draw_unit(unit, monster)
 
+        for monster in self.battle_field.alive_monsters:
+            if monster.is_alive and monster.target is not None:
+                self.canvas.create_line(
+                    monster.position.x * self.cell_size, monster.position.y * self.cell_size,
+                    monster.target.position.x * self.cell_size, monster.target.position.y * self.cell_size,
+                    fill="#FF3030" if monster.faction == Faction.LEFT else "#3030FF", width=1, arrow='last')
         self.timer_label.config(text=f"{self.battle_field.gameTime:.2f}秒")
 
         # dead_units = []
@@ -464,5 +477,7 @@ class SandboxSimulator:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SandboxSimulator(root)
+    # app = SandboxSimulator(root, {"left": {"1750哥": 4, "标枪恐鱼": 9}, "right": {"狗pro": 44, "机鳄": 8}, "result": "right"})
+    app = SandboxSimulator(root, {"left": {"镜神": 7}, "right": {"狂躁珊瑚": 5}, "result": "right"})
+
     root.mainloop()
