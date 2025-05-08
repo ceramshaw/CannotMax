@@ -279,7 +279,10 @@ class SandboxSimulator:
         if not self.simulating:
             return
         
-        result = self.battle_field.run_one_frame()
+        for i in range(int(self.speed_multiplier)):
+            result = self.battle_field.run_one_frame()
+            if result != None:
+                break
 
         if result:
             if result == Faction.LEFT:
@@ -287,7 +290,7 @@ class SandboxSimulator:
             else:
                 self.show_result("右方胜利！")
 
-        interval = max(1, int(33 / self.speed_multiplier))  # 保持最小1ms间隔
+        interval = max(1, 33)  # 保持最小1ms间隔
         self.simulation_id = self.master.after(interval, self.simulate)
 
         # 重绘画布
@@ -478,6 +481,7 @@ class SandboxSimulator:
 if __name__ == "__main__":
     root = tk.Tk()
     # app = SandboxSimulator(root, {"left": {"1750哥": 4, "标枪恐鱼": 9}, "right": {"狗pro": 44, "机鳄": 8}, "result": "right"})
-    app = SandboxSimulator(root, {"left": {"镜神": 7}, "right": {"狂躁珊瑚": 5}, "result": "right"})
+    app = SandboxSimulator(root, {"left": {"鳄鱼": 9}, "right": {"食腐狗": 6}, "result": "right"}
+)
 
     root.mainloop()
